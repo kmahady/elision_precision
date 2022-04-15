@@ -4,22 +4,6 @@ import re
 from phonetic_distance.phonetic_distance import needleman_wunsch
 from itertools import combinations
 from collections import defaultdict
-"""
-Ideas for a name:
-PhoDi
-Pho 75
-Pho Sure
-The Phonz
-Pho Mo
-The Phonemic Glide
-Elision Precision
-Pho Fu
-Voiceless nasal ingressive velar trill
-through_though_threw
-potato_pomelo
-blosum_plosive
-
-"""
 class Phonetic_Distance:
     def __init__(self, logodds_mtx, unique_phonemes):
         self.logodds_mtx = logodds_mtx
