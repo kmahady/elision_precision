@@ -1,10 +1,21 @@
 import nltk
 import numpy as np
 import re
-from phonetic_distance.phonetic_distance import needleman_wunsch
+from phonetic_distance import needleman_wunsch
 from itertools import combinations
 from collections import defaultdict
 class Phonetic_Distance:
+    """
+    Class for the calculation of the phonetic distance between sequences of phonemes
+    represented by ARPABET.
+
+    Parameters
+    ----------
+    logodds_mtx : np.array
+        The WPSM matrix 
+    unique_phonemes : list of strings
+        The unique phonemes whose substitutions are represented by the WPSM matrix
+    """
     def __init__(self, logodds_mtx, unique_phonemes):
         self.logodds_mtx = logodds_mtx
         self.unique_phonemes = unique_phonemes
@@ -29,20 +40,28 @@ class Phonetic_Distance:
 
 class WPSM_Matrix:
     """
+    Calculates the Weighted Phoneme Substitution Matrix (WPSM).
+
+    This is based on the paper by Hixon et al (1). The computation differs somewhat from
+    Hixon et al., giving a somewhat different matrix.
+
+    (1) Hixon, Ben, Eric Schneider, and Susan L. Epstein. "Phonemic similarity metrics
+    to compare pronunciation methods."Twelfth Annual Conference of the
+    International Speech Communication Association. 2011.
+
     BLOSUM Computation: http://www.cs.cmu.edu/~durand/03-711/2010/Lectures/blosum10.pdf
     """
     def __init__(self):
-        self.preprocess_cmu()
-        self.arpabet_stressless = self.preprocess_cmu()
+        self.arpabet_stressless = self._preprocess_cmu()
         # get those with multiple pronunciations
         self.arpabet_multiple = {key:val for key,val in self.arpabet_stressless.items() if len(val)>1}
-        self.unique_phonemes = self.get_phonemes(self.arpabet_multiple)
-        self.all_pairs = self.align_multiple_pronunciations(self.arpabet_multiple)
-        self.observed_frequency = self.generate_substitution_matrix_fast(self.unique_phonemes, self.all_pairs)
-        self.Exx, self.Exy = self.generate_expected_matrix(self.unique_phonemes, self.all_pairs)
-        self.logodds_mtx = self.generate_logodds_mtx(self.unique_phonemes, self.observed_frequency, 
+        self.unique_phonemes = self._get_phonemes(self.arpabet_multiple)
+        self.all_pairs = self._align_multiple_pronunciations(self.arpabet_multiple)
+        self.observed_frequency = self._generate_substitution_matrix_fast(self.unique_phonemes, self.all_pairs)
+        self.Exx, self.Exy = self._generate_expected_matrix(self.unique_phonemes, self.all_pairs)
+        self.logodds_mtx = self._generate_logodds_mtx(self.unique_phonemes, self.observed_frequency, 
                                                      self.Exx, self.Exy)
-    def preprocess_cmu(self):
+    def _preprocess_cmu(self):
         arpabet = nltk.corpus.cmudict.dict()
         # get only the words with letter headwords
         arpabet_alpha = {key:val for key,val in arpabet.items() if key.isalpha()}
@@ -50,7 +69,7 @@ class WPSM_Matrix:
         arpabet_stressless={key:[remove_stress_arpabet(v) for v in val] for key,val in arpabet_alpha.items()}
         return arpabet_stressless
 
-    def get_phonemes(self, arpabet):
+    def _get_phonemes(self, arpabet):
         # extract phonemes
         all_phonemes=[v for key in arpabet.keys() for w in arpabet[key] for v in w]
         # get the unique, in-order phonemes
@@ -58,7 +77,7 @@ class WPSM_Matrix:
         # add the indel "phoneme"
         unique_phonemes.append('-')
         return unique_phonemes
-    def align_multiple_pronunciations(self, arpabet):
+    def _align_multiple_pronunciations(self, arpabet):
         print("Generating phonetic alignments (this may take a minute)")
         aligner = needleman_wunsch.Needleman_Wunsch()
         all_pairs = defaultdict(list)
@@ -69,7 +88,7 @@ class WPSM_Matrix:
                 for alignment in aligner.align_sequences(pairs[0], pairs[1]):
                     all_pairs[word].append(alignment)
         return all_pairs
-    def generate_substitution_matrix_fast(self, unique_phonemes, all_pairs):
+    def _generate_substitution_matrix_fast(self, unique_phonemes, all_pairs):
         # Faster implementation, but less readable and harder to adapt to other uses
         ffrequency_matrices = []
         nbs = []
@@ -122,7 +141,7 @@ class WPSM_Matrix:
             sum_freq += M
         return sum_freq/sum(nbs)
     
-    def generate_expected_matrix(self, unique_phonemes, all_pairs):
+    def _generate_expected_matrix(self, unique_phonemes, all_pairs):
         expected_matrices = []
         nbs = []
         Cbs = []
@@ -154,7 +173,7 @@ class WPSM_Matrix:
         Exx = px**2
         return Exx, Exy
 
-    def generate_logodds_mtx(self, unique_phonemes, observed_freq, Exx, Exy):
+    def _generate_logodds_mtx(self, unique_phonemes, observed_freq, Exx, Exy):
         mtx_final = np.zeros_like(Exy)
         for i, ph1 in enumerate(unique_phonemes):
             for j, ph2 in enumerate(unique_phonemes):
@@ -180,4 +199,6 @@ def get_sorted_phonemes():
     return sorted_phonemes
 
 def remove_stress_arpabet(phon_list):
-        return [re.sub(r'[^a-zA-Z]', '', w) for w in phon_list]
+    """ Removes the stress markers in a sequence of phonemes in CMU Dict
+    """
+    return [re.sub(r'[^a-zA-Z]', '', w) for w in phon_list]
