@@ -4,6 +4,30 @@ import re
 from phonetic_distance import needleman_wunsch
 from itertools import combinations
 from collections import defaultdict
+
+"""
+Example
+-------
+>>> from phonetic_distance import phonetic_distance
+>>> aligner = phonetic_distance.needleman_wunsch.Needleman_Wunsch()
+>>> WPSM = phonetic_distance.WPSM_Matrix()
+>>> metrics = phonetic_distance.Phonetic_Distance(WPSM.logodds_mtx, WPSM.unique_phonemes)
+
+Get the pronunciations of a word. You can manually input these, or just use the lookup stored in 
+the WPSM_Matrix class
+>>> p1=WPSM.arpabet_stressless['tomato'][0]
+>>> p1
+['T', 'AH', 'M', 'EY', 'T', 'OW']
+>>> p2=WPSM.arpabet_stressless['tomato'][1]
+>>> p2
+['T', 'AH', 'M', 'AA', 'T', 'OW']
+
+Align the sequences (unnecessary in this case)
+>>> aligned = aligner.align_sequences(p1, p2)
+>>> metrics.get_MIR(aligned[0][0], aligned[0][1])
+0.8254594147120822
+
+"""
 class Phonetic_Distance:
     """
     Class for the calculation of the phonetic distance between sequences of phonemes
@@ -20,6 +44,22 @@ class Phonetic_Distance:
         self.logodds_mtx = logodds_mtx
         self.unique_phonemes = unique_phonemes
     def get_score_list(self, w1, w2):
+        """ Calculates the similarity score the sounds in pronunciations w1 and w1.
+
+        w1 and w2 must be aligned, so that they are the same length.
+
+        Parameters
+        ----------
+        w1 : list of str
+            A pronunciation of a word. Each str must be a stressless phoneme in ARPABET
+        w2 : list of str
+            A pronunciation of a word. Each str must be a stressless phoneme in ARPABET
+
+        Returns
+        -------
+        List of floats
+            The similarity for each sound in w1 and w2
+        """
         scores=[]
         for i in range(len(w1)):
             idx1 = self.unique_phonemes.index(w1[i])
@@ -27,6 +67,22 @@ class Phonetic_Distance:
             scores.append(self.logodds_mtx[idx1, idx2])
         return scores
     def get_score(self, w1, w2):
+        """ Calculates the similarity score between the pronunciations w1 and w1.
+
+        w1 and w2 must be aligned, so that they are the same length.
+
+        Parameters
+        ----------
+        w1 : list of str
+            A pronunciation of a word. Each str must be a stressless phoneme in ARPABET
+        w2 : list of str
+            A pronunciation of a word. Each str must be a stressless phoneme in ARPABET
+
+        Returns
+        -------
+        List of floats
+            The similarity between w1 and w2.
+        """
         scores=[]
         for i in range(len(w1)):
             idx1 = self.unique_phonemes.index(w1[i])
@@ -34,6 +90,22 @@ class Phonetic_Distance:
             scores.append(self.logodds_mtx[idx1, idx2])
         return np.mean(scores)
     def get_MIR(self, w1, w2):
+        """ Calculates the MIR (Mean Identity Ratio) score between the pronunciations w1 and w1.
+
+        w1 and w2 must be aligned, so that they are the same length.
+
+        Parameters
+        ----------
+        w1 : list of str
+            A pronunciation of a word. Each str must be a stressless phoneme in ARPABET
+        w2 : list of str
+            A pronunciation of a word. Each str must be a stressless phoneme in ARPABET
+
+        Returns
+        -------
+        List of floats
+            The MIR between w1 and w2.
+        """
         score0 = self.get_score(w1, w1)
         score1 = self.get_score(w1,w2)
         return score1/score0
