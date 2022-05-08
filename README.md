@@ -6,5 +6,5 @@ Implements the word phonetic similarity matrix (WPSM), as described in the follo
     to compare pronunciation methods." Twelfth Annual Conference of the
     International Speech Communication Association. 2011.
 
-Results quantitatively from Hixon et al, due to a variety of differences in implementations, but
+Results differ quantitatively from Hixon et al, due to a variety of differences in implementation, but
 seem qualitatively similar.
