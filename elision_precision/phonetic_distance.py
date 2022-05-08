@@ -1,7 +1,7 @@
 import nltk
 import numpy as np
 import re
-from phonetic_distance import needleman_wunsch
+from elision_precision.elision_precision import needleman_wunsch
 from itertools import combinations
 from collections import defaultdict
 
@@ -12,7 +12,6 @@ Example
 >>> aligner = phonetic_distance.needleman_wunsch.Needleman_Wunsch()
 >>> WPSM = phonetic_distance.WPSM_Matrix()
 >>> metrics = phonetic_distance.Phonetic_Distance(WPSM.logodds_mtx, WPSM.unique_phonemes)
-
 Get the pronunciations of a word. You can manually input these, or just use the lookup stored in 
 the WPSM_Matrix class
 >>> p1=WPSM.arpabet_stressless['tomato'][0]
@@ -21,9 +20,9 @@ the WPSM_Matrix class
 >>> p2=WPSM.arpabet_stressless['tomato'][1]
 >>> p2
 ['T', 'AH', 'M', 'AA', 'T', 'OW']
-
 Align the sequences (unnecessary in this case)
 >>> aligned = aligner.align_sequences(p1, p2)
+Get the MIR diffence between the zero element alignment between the two
 >>> metrics.get_MIR(aligned[0][0], aligned[0][1])
 0.8254594147120822
 
@@ -134,6 +133,8 @@ class WPSM_Matrix:
         self.logodds_mtx = self._generate_logodds_mtx(self.unique_phonemes, self.observed_frequency, 
                                                      self.Exx, self.Exy)
     def _preprocess_cmu(self):
+        """ Preprocesses the CMU_Dict to remove non-alpha entries, and to remove stresses
+        """
         arpabet = nltk.corpus.cmudict.dict()
         # get only the words with letter headwords
         arpabet_alpha = {key:val for key,val in arpabet.items() if key.isalpha()}
@@ -142,6 +143,8 @@ class WPSM_Matrix:
         return arpabet_stressless
 
     def _get_phonemes(self, arpabet):
+        """ Create a list of the unique phonemes in cmudict
+        """
         # extract phonemes
         all_phonemes=[v for key in arpabet.keys() for w in arpabet[key] for v in w]
         # get the unique, in-order phonemes
@@ -150,6 +153,8 @@ class WPSM_Matrix:
         unique_phonemes.append('-')
         return unique_phonemes
     def _align_multiple_pronunciations(self, arpabet):
+        """Align all multiple pronunciations in arpabet
+        """
         print("Generating phonetic alignments (this may take a minute)")
         aligner = needleman_wunsch.Needleman_Wunsch()
         all_pairs = defaultdict(list)
@@ -161,6 +166,8 @@ class WPSM_Matrix:
                     all_pairs[word].append(alignment)
         return all_pairs
     def _generate_substitution_matrix_fast(self, unique_phonemes, all_pairs):
+        """ Creates the matrix of substitutions
+        """
         # Faster implementation, but less readable and harder to adapt to other uses
         ffrequency_matrices = []
         nbs = []
@@ -190,6 +197,8 @@ class WPSM_Matrix:
         sum_freq[-1,-1] = np.mean(sum_freq.diagonal())
         return sum_freq/sum(nbs)
     def generate_subsitution_matrix(self, unique_phonemes, all_pairs):
+        """ Generates the matrix of substitutions (slower implementation)
+        """
         print("Generating substitution matrix (this may take a few minutes")
         # first pass: only take one pair from each word
         frequency_matrices = []
@@ -214,6 +223,8 @@ class WPSM_Matrix:
         return sum_freq/sum(nbs)
     
     def _generate_expected_matrix(self, unique_phonemes, all_pairs):
+        """ Generate the matrix of the expected frequencies of phonemes
+        """
         expected_matrices = []
         nbs = []
         Cbs = []
@@ -259,7 +270,8 @@ class WPSM_Matrix:
 
 
 def get_sorted_phonemes():
-    # This is a convenience method, which just groups phonemes based on characteristics
+    """ This is a convenience method, which just groups phonemes based on some basic characteristics.
+    """
     vowels = ['AA', 'AE', 'AH', 'AO', 'AW', 'AY', 'EH', "ER", "EY", "IH", "IY", "OW", "OY", "UH", "UW"]
     labial_consonants = ["B", "P", "F", "V"]
     dental = ["D", "T", "DH", "TH", "S", "Z"]
@@ -272,5 +284,14 @@ def get_sorted_phonemes():
 
 def remove_stress_arpabet(phon_list):
     """ Removes the stress markers in a sequence of phonemes in CMU Dict
+
+    Parameters
+    ----------
+    phon_list : list 
+        List whose entries are arpabet phonemes (with numerical stress)
+    Returns
+    -------
+    list
+        List whose entries are the arpabet phonemes (without numerical stress)
     """
     return [re.sub(r'[^a-zA-Z]', '', w) for w in phon_list]
