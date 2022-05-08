@@ -1,14 +1,14 @@
 import nltk
 import numpy as np
 import re
-from elision_precision.elision_precision import needleman_wunsch
+from elision_precision import needleman_wunsch
 from itertools import combinations
 from collections import defaultdict
 
 """
 Example
 -------
->>> from phonetic_distance import phonetic_distance
+>>> from elision_precision import phonetic_distance
 >>> aligner = phonetic_distance.needleman_wunsch.Needleman_Wunsch()
 >>> WPSM = phonetic_distance.WPSM_Matrix()
 >>> metrics = phonetic_distance.Phonetic_Distance(WPSM.logodds_mtx, WPSM.unique_phonemes)
